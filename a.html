@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Implementación: Generador de Certificados (Batch)</title>
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-light: #eff6fc;
+            --text-main: #323130;
+            --bg-page: #faf9f8;
+            --bg-card: #ffffff;
+            --border: #edebe9;
+            --warning-bg: #fff4ce;
+            --warning-border: #f7d154;
+            --code-bg: #1e1e1e;
+            --code-text: #dcdcaa;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            color: var(--primary);
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #605e5c;
+            font-size: 1.1em;
+        }
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        h2 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .step {
+            margin-bottom: 30px;
+            padding-left: 20px;
+            border-left: 3px solid var(--primary);
+        }
+        .step-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .action-name {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-left: 10px;
+            font-size: 0.9em;
+        }
+        .code-block {
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 10px 0;
+            border: 1px solid #333;
+        }
+        .warning {
+            background-color: var(--warning-bg);
+            border-left: 4px solid var(--warning-border);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            color: #3b3a39;
+        }
+        .warning strong {
+            color: #d13438;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border: 1px solid var(--border);
+        }
+        th {
+            background-color: var(--bg-page);
+            font-weight: 600;
+        }
+        .copy-hint {
+            font-size: 0.85em;
+            color: #888;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Guía Definitiva: Generador Masivo de Certificados</h1>
+        <p>Sigue los pasos uno a uno. No necesitas saber programar, solo copiar y pegar donde se indica.</p>
+    </div>
+
+    <div class="card">
+        <h2>Fase 1: Preparación y Lectura de Archivos</h2>
+        <p>Aquí le diremos al flujo de dónde sacar la información (los Excel de Traducciones y Datos).</p>
+
+        <div class="step">
+            <div class="step-title">1. Crear el disparador <span class="action-name">Manually trigger a flow</span></div>
+            <p>Ve a Power Automate, crea un "Instant cloud flow" y selecciona <strong>Manually trigger a flow</strong>. No agregues ninguna entrada (input). Solo dale a "New step".</p>
+        </div>
+
+        <div class="step">
+            <div class="step-title">2. Buscar el Excel de Traducciones <span class="action-name">List folder</span> -> <span class="action-name">Filter array</span> -> <span class="action-name">Get tables</span></div>
+            <p>Agrega estas 3 acciones en orden para encontrar dinámicamente la tabla:</p>
+            <ul>
+                <li><strong>SharePoint - List folder:</strong> Selecciona tu sitio y la carpeta de traducciones.</li>
+                <li><strong>Data Operation - Filter array:</strong> En "From" pon la salida del paso anterior. En la condición pon <code>item()?['Name']</code> <strong>ends with</strong> <code>.xlsx</code>.</li>
+                <li><strong>Excel - Get tables:</strong> En File pon <code>@first(body('Filter_array'))?['Id']</code>.</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <div class="step-title">3. Leer Traducciones <span class="action-name">List rows present in a table</span></div>
+            <p>Configura así:</p>
+            <ul>
+                <li><strong>File:</strong> <code>@first(body('Filter_array'))?['Id']</code></li>
+                <li><strong>Table:</strong> <code>@first(outputs('Get_tables')?['body/value'])?['id']</code></li>
+            </ul>
+            <div class="warning">
+                <strong>¡MUY IMPORTANTE!</strong> Haz clic en los 3 puntitos de esta acción, elige <strong>Settings</strong>. Enciende <strong>Pagination</strong> y escribe <code>100000</code> en Threshold. Dale a Done.
+            </div>
+            <p><em>* Renombra esta acción a: <strong>List_rows_Translations</strong></em></p>
+        </div>
+
+        <div class="step">
+            <div class="step-title">4. Leer Datos Académicos (El Excel Gigante)</div>
+            <p>Repite exactamente los mismos pasos del 2 y 3, pero apuntando a la <strong>carpeta de Datos Académicos</strong>.</p>
+            <p><em>* Renombra la última acción a: <strong>List_rows_Datos</strong> (No olvides activar la paginación con 100000 aquí también).</em></p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Fase 2: Obtener a los 700 Alumnos Únicos</h2>
+        <p>El Excel tiene miles de filas. Aquí las filtramos para que el flujo sepa cuántos certificados debe hacer.</p>
+
+        <div class="step">
+            <div class="step-title">1. Aislar los códigos de alumno <span class="action-name">Select</span></div>
+            <p>Agrega una acción <strong>Select</strong> (Data Operation).</p>
+            <ul>
+                <li><strong>From:</strong> Salida "value" de <em>List_rows_Datos</em>.</li>
+                <li>Haga clic en el botón pequeño a la derecha de "Map" para cambiar a modo texto y pega esta expresión exacta en la caja vacía:</li>
+            </ul>
+            <div class="code-block">@item()?['COD_ALUMNO']</div>
+            <p><em>* Renombra a: <strong>Select_All_Alumnos</strong></em></p>
+        </div>
+
+        <div class="step">
+            <div class="step-title">2. Quitar duplicados <span class="action-name">Compose</span></div>
+            <p>Agrega un <strong>Compose</strong>. Haz clic en la caja de "Inputs", ve a la pestaña "Expression" (Expresión) en la ventana emergente, pega esto y dale a OK:</p>
+            <div class="code-block">@union(body('Select_All_Alumnos'), body('Select_All_Alumnos'))</div>
+            <p><em>* Renombra a: <strong>Unique_Alumnos</strong></em></p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Fase 3: Crear Variables Vacías</h2>
+        <p>Agrega 12 acciones <strong>Initialize variable</strong>, una tras otra. Todas deben ser de tipo <strong>String</strong>. Déjalas todas vacías en la casilla de "Value".</p>
+        <ul>
+            <li><code>varCodAlumno</code></li>
+            <li><code>varNombreAlumno</code></li>
+            <li><code>varModalidad</code></li>
+            <li><code>varUltimoPeriodo</code></li>
+            <li><code>varHTML</code></li>
+            <li><code>varCiclo</code></li>
+            <li><code>varEnrolled</code></li>
+            <li><code>varPass</code></li>
+            <li><code>varPondActual</code></li>
+            <li><code>varPondAcum</code></li>
+            <li><code>varOrden</code></li>
+            <li><code>varMerito</code></li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Fase 4: El Bucle Maestro (La Fábrica de Certificados)</h2>
+        <p>Aquí es donde ocurre la magia. Procesaremos alumno por alumno.</p>
+
+        <div class="step">
+            <div class="step-title">1. Crear el Bucle <span class="action-name">Apply to each</span></div>
+            <p>Agrega un <strong>Apply to each</strong>. En la caja, selecciona la salida del paso <strong>Unique_Alumnos</strong>. Renómbralo a <code>Apply_to_each_Alumno</code>.</p>
+            
+            <div class="warning">
+                <strong>⚠️ REGLA DE ORO (Si no haces esto, los datos se mezclarán):</strong><br>
+                1. Clic en los 3 puntos del <em>Apply_to_each_Alumno</em>.<br>
+                2. Selecciona <strong>Settings</strong>.<br>
+                3. Enciende <strong>Concurrency Control</strong>.<br>
+                4. Desliza la barra hasta el número <strong>1</strong>. Dale a Done.
+            </div>
+        </div>
+
+        <h3>A partir de aquí, TODO va DENTRO del Bucle "Apply_to_each_Alumno"</h3>
+
+        <div class="step">
+            <div class="step-title">2. Filtrar filas de este alumno <span class="action-name">Filter array</span></div>
+            <p><strong>From:</strong> Salida "value" de <em>List_rows_Datos</em>.</p>
+            <p><strong>Condición:</strong> <code>item()?['COD_ALUMNO']</code> <strong>is equal to</strong> <code>items('Apply_to_each_Alumno')</code></p>
+            <p><em>* Renombra a: <strong>Filter_Datos_Alumno_Actual</strong></em></p>
+        </div>
+
+        <div class="step">
+            <div class="step-title">3. Llenar los datos del alumno <span class="action-name">Set variable</span></div>
+            <p>Agrega acciones <strong>Set variable</strong> con estas expresiones exactas:</p>
+            <table>
+                <tr><th>Variable</th><th>Expresión a pegar</th></tr>
+                <tr><td>varCodAlumno</td><td><code>@items('Apply_to_each_Alumno')</code></td></tr>
+                <tr><td>varNombreAlumno</td><td><code>@first(body('Filter_Datos_Alumno_Actual'))?['NOMBRES Y APELLIDOS']</code></td></tr>
+                <tr><td>varModalidad</td><td><code>@first(body('Filter_Datos_Alumno_Actual'))?['COD_MODALIDAD_ESTUDIO']</code></td></tr>
+                <tr><td>varUltimoPeriodo</td><td><em>(Déjalo totalmente vacío)</em></td></tr>
+            </table>
+        </div>
+
+        <div class="step">
+            <div class="step-title">4. Preparar el HTML Base <span class="action-name">Set variable</span></div>
+            <p>Usa <strong>Set variable</strong> para <code>varHTML</code> y pega EXACTAMENTE este bloque gigante:</p>
+            <div class="code-block">&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset="UTF-8"&gt;&lt;style&gt;body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:20px 40px}.title{font-size:22px;font-weight:bold;text-align:center}table.courses{width:100%;border-collapse:collapse}table.courses thead tr{background-color:#c00;color:#fff}table.courses thead th{padding:5px 6px;text-align:center;font-size:10px;border:1px solid #999}table.courses thead th.name{text-align:left}table.courses tbody tr:nth-child(even){background-color:#e0e0e0}table.courses tbody td{padding:4px 6px;text-align:center;border:1px solid #ccc;font-size:10px}table.courses tbody td.name{text-align:left}table.totals{width:100%;border-collapse:collapse;margin-bottom:6px}table.totals thead tr{background-color:#c00;color:#fff}table.totals thead th{padding:4px 6px;text-align:center;font-size:10px;border:1px solid #999}table.totals tbody td{padding:4px 6px;text-align:center;border:1px solid #ccc;font-size:10px}.sc{background-color:#c00;color:#fff}.period-block{margin-top:14px}.period-title{font-size:12px;font-weight:bold;margin-bottom:4px}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class="title"&gt;GRADE RECORD&lt;/div&gt;&lt;div&gt;Student: &lt;strong&gt;@{variables('varCodAlumno')}&lt;/strong&gt; - @{variables('varNombreAlumno')}&lt;/div&gt;&lt;div&gt;Modality: @{variables('varModalidad')} PREGRADO&lt;/div&gt;</div>
+        </div>
+
+        <div class="step">
+            <div class="step-title">5. El Bucle Interno (Procesar Cursos) <span class="action-name">Apply to each</span></div>
+            <p>Agrega un <strong>NUEVO Apply to each</strong> DENTRO del principal. En la caja, pon: <code>@body('Filter_Datos_Alumno_Actual')</code>. Renómbralo a <code>Apply_to_each_Curso</code>.</p>
+            
+            <p><strong>DENTRO de este bucle interno, agrega estas acciones:</strong></p>
+            <ol>
+                <li><strong>Filter array</strong> (Llámalo <em>Lookup_Traduccion</em>). From: <code>@outputs('List_rows_Translations')?['body/value']</code>. Condición: <code>@item()?['CODIGOS SOCRATES']</code> <strong>is equal to</strong> <code>@items('Apply_to_each_Curso')?['COD_CURSO']</code></li>
+                <li><strong>Compose</strong> (Llámalo <em>Calc_CourseName</em>): <code>@if(greater(length(body('Lookup_Traduccion')),0), first(body('Lookup_Traduccion'))?['COURSE'], items('Apply_to_each_Curso')?['DES_CURSO'])</code></li>
+                <li><strong>Compose</strong> (Llámalo <em>Calc_UA</em>): <code>@if(greater(length(body('Lookup_Traduccion')),0), first(body('Lookup_Traduccion'))?['UA'], '')</code></li>
+                <li><strong>Compose</strong> (Llámalo <em>Calc_Grade</em>): <code>@if(equals(items('Apply_to_each_Curso')?['DES_ESTADO_BANNER'],'RETIRADO'),'WITHDRAWN',string(items('Apply_to_each_Curso')?['PROMEDIO_FINAL']))</code></li>
+                <li><strong>Condition</strong>: Left <code>@items('Apply_to_each_Curso')?['COD_PERIODO_ACADEMICO']</code> <strong>is not equal to</strong> Right <code>@variables('varUltimoPeriodo')</code>.
+                    <br><br><strong>Dentro del YES de esta condición:</strong>
+                    <ul>
+                        <li>Otra <strong>Condition</strong>: <code>varUltimoPeriodo</code> is not equal to <em>(vacío)</em>. Si es YES, <strong>Append to string variable (varHTML)</strong>:<br>
+                            <div class="code-block">&lt;/tbody&gt;&lt;/table&gt;&lt;table class="totals"&gt;&lt;thead&gt;&lt;tr&gt;&lt;th colspan="2" class="sc"&gt;Credits&lt;/th&gt;&lt;th colspan="2" class="sc"&gt;Weighted Av.&lt;/th&gt;&lt;th colspan="2" class="sc"&gt;Merit&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;th&gt;Term&lt;/th&gt;&lt;th&gt;Enrolled&lt;/th&gt;&lt;th&gt;Pass&lt;/th&gt;&lt;th&gt;Current&lt;/th&gt;&lt;th&gt;Acum.&lt;/th&gt;&lt;th&gt;Order&lt;/th&gt;&lt;th&gt;Belongs to&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;@{variables('varCiclo')}&lt;/td&gt;&lt;td&gt;@{variables('varEnrolled')}&lt;/td&gt;&lt;td&gt;@{variables('varPass')}&lt;/td&gt;&lt;td&gt;@{variables('varPondActual')}&lt;/td&gt;&lt;td&gt;@{variables('varPondAcum')}&lt;/td&gt;&lt;td&gt;@{variables('varOrden')}&lt;/td&gt;&lt;td&gt;@{variables('varMerito')}&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;</div>
+                        </li>
+                        <li><strong>Set variable (varCiclo)</strong>: <code>@items('Apply_to_each_Curso')?['CICLO_ALUMNO']</code></li>
+                        <li><strong>Set variable (varUltimoPeriodo)</strong>: <code>@items('Apply_to_each_Curso')?['COD_PERIODO_ACADEMICO']</code></li>
+                        <li><strong>Append to string variable (varHTML)</strong>:<br>
+                            <div class="code-block">&lt;div class="period-block"&gt;&lt;div class="period-title"&gt;&lt;span&gt;@{items('Apply_to_each_Curso')?['COD_PERIODO_ACADEMICO']}&lt;/span&gt; &amp;nbsp; &lt;span&gt;@{items('Apply_to_each_Curso')?['DES_PRODUCTO']}&lt;/span&gt;&lt;/div&gt;&lt;table class="courses"&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Code&lt;/th&gt;&lt;th class="name"&gt;Name&lt;/th&gt;&lt;th&gt;Level&lt;/th&gt;&lt;th&gt;Credits&lt;/th&gt;&lt;th&gt;Final Average&lt;/th&gt;&lt;th&gt;Num. of times&lt;/th&gt;&lt;th&gt;UA&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;</div>
+                        </li>
+                    </ul>
+                </li>
+                <li><strong>Append to string variable (varHTML)</strong> <em>(Afuera de la condición de arriba, pero todavía dentro del bucle de cursos)</em>:<br>
+                    <div class="code-block">&lt;tr&gt;&lt;td&gt;@{items('Apply_to_each_Curso')?['COD_CURSO']}&lt;/td&gt;&lt;td class="name"&gt;@{outputs('Calc_CourseName')}&lt;/td&gt;&lt;td&gt;@{items('Apply_to_each_Curso')?['NIVEL_CURSO']}&lt;/td&gt;&lt;td&gt;@{items('Apply_to_each_Curso')?['CREDITOS_CURSO']}&lt;/td&gt;&lt;td&gt;@{outputs('Calc_Grade')}&lt;/td&gt;&lt;td&gt;@{items('Apply_to_each_Curso')?['NRO_VEZ_CURSO']}&lt;/td&gt;&lt;td&gt;@{outputs('Calc_UA')}&lt;/td&gt;&lt;/tr&gt;</div>
+                </li>
+                <li>Usa 6 <strong>Set variable</strong> para actualizar los totales: <code>varEnrolled</code> = <code>@items('Apply_to_each_Curso')?['TOTAL_CREDITOS_MATRICULADOS']</code>, etc.</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <div class="step-title">6. Cierre final y guardado <span class="action-name">Create file</span></div>
+            <p><strong>AFUERA</strong> del <em>Apply_to_each_Curso</em>, pero todavía <strong>DENTRO</strong> del bucle maestro de alumnos (<em>Apply_to_each_Alumno</em>):</p>
+            <ol>
+                <li><strong>Append to string (varHTML)</strong> para cerrar el documento:<br>
+                    <div class="code-block">&lt;/tbody&gt;&lt;/table&gt;&lt;table class="totals"&gt;&lt;thead&gt;&lt;tr&gt;&lt;th colspan="2" class="sc"&gt;Credits&lt;/th&gt;&lt;th colspan="2" class="sc"&gt;Weighted Av.&lt;/th&gt;&lt;th colspan="2" class="sc"&gt;Merit&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;th&gt;Term&lt;/th&gt;&lt;th&gt;Enrolled&lt;/th&gt;&lt;th&gt;Pass&lt;/th&gt;&lt;th&gt;Current&lt;/th&gt;&lt;th&gt;Acum.&lt;/th&gt;&lt;th&gt;Order&lt;/th&gt;&lt;th&gt;Belongs to&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;@{variables('varCiclo')}&lt;/td&gt;&lt;td&gt;@{variables('varEnrolled')}&lt;/td&gt;&lt;td&gt;@{variables('varPass')}&lt;/td&gt;&lt;td&gt;@{variables('varPondActual')}&lt;/td&gt;&lt;td&gt;@{variables('varPondAcum')}&lt;/td&gt;&lt;td&gt;@{variables('varOrden')}&lt;/td&gt;&lt;td&gt;@{variables('varMerito')}&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;</div>
+                </li>
+                <li><strong>SharePoint - Create File</strong>: Carpeta destino, Name: <code>GradeRecord_@{variables('varCodAlumno')}.html</code>, Content: <code>@variables('varHTML')</code>. Renómbralo a <em>Create_HTML_File</em></li>
+                <li><strong>HTTP</strong> (Para convertir el archivo recién creado a PDF usando Graph API).</li>
+                <li><strong>SharePoint - Create File</strong> para guardar el PDF final.</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
